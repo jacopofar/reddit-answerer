@@ -25,6 +25,9 @@ if (first_step <= 1):
         for line in comp_file:
             count_lines += 1
             comment = json.loads(line.decode('utf-8'))
+            #skip deleted comments or replies
+            if(comment['body'] =='[deleted]'):
+                continue
             #parent_id,name,link_id,subreddit_name,score, content
             pending_inserts.append((comment['parent_id'], comment['name'], comment['link_id'], comment['subreddit'], comment['score'], comment['body']))
             if (comment['parent_id'] != comment['link_id']):
@@ -67,9 +70,6 @@ if(first_step <=3):
     with open('qa.jsons') as qa_file:
             for line in qa_file:
                 count_lines += 1
-                #skip deleted comments or replies
-                if ('[deleted]' in line):
-                    continue
                 document = json.loads(line)
                 docs +=  json.dumps({"index":{"_id":count_lines}})+ "\n" + json.dumps({"question":document[0],"answer":document[1],"sub":document[2]})+"\n"
                 if (count_lines % 200 == 0):
