@@ -1,9 +1,11 @@
+import argparse
 import bz2
 import json
 import sqlite3
 from progress import Progress_tracker
 import http.client
 
+parser = argparse.ArgumentParser(description='Load one-month reddit dump dump into comment/reply pairs and load them on Elasticsearch')
 first_step = 3
 conn = sqlite3.connect('reddit_comments.db')
 c = conn.cursor()
