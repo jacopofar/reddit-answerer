@@ -6,8 +6,15 @@ from progress import Progress_tracker
 import http.client
 
 parser = argparse.ArgumentParser(description='Load one-month reddit dump dump into comment/reply pairs and load them on Elasticsearch')
-first_step = 3
-conn = sqlite3.connect('reddit_comments.db')
+parser.add_argument('first_step', choices=[0,1,2,3], default=0, help='initial step. 0 to initialize SQLite DB, 1 to populate it, 2 to export comment pairs in a file and 3 to load it on Elasticsearch')
+parser.add_argument('sqlite_db_file', default='reddit_comments.db', help='name of the SQLite file to create or use')
+parser.add_argument('comments_bz2_file', default='/home/user/shared/reddit_data/2015/RC_2015-05.bz2', help='path of the bz2 compressed JSONs file with reddit comments')
+parser.add_argument('elasticearch_address', default='127.0.0.1:9200', help='Elasticsearch address')
+
+args = parser.parse_args()
+first_step = args.first_step
+
+conn = sqlite3.connect(args.sqlite_db_file)
 c = conn.cursor()
 
 if (first_step <= 0):
@@ -20,7 +27,7 @@ count_parents = 33000000
 if (first_step <= 1):
     print('step 1, importing the reddit comments inside the DB...')
     count_lines = 0
-    with bz2.open('/home/user/shared/reddit_data/2015/RC_2015-05.bz2') as comp_file:
+    with bz2.open(args.comments_bz2_file) as comp_file:
         pending_inserts = []
         #estimation of total comments
         progress = Progress_tracker(55000000)
@@ -75,7 +82,7 @@ if(first_step <=3):
                 document = json.loads(line)
                 docs +=  json.dumps({"index":{"_id":count_lines}})+ "\n" + json.dumps({"question":document[0],"answer":document[1],"sub":document[2]})+"\n"
                 if (count_lines % 200 == 0):
-                    conn = http.client.HTTPConnection("192.168.33.124:9200")
+                    conn = http.client.HTTPConnection(args.elasticearch_address)
                     conn.request("POST", "/my_index/my_type/_bulk", docs)
                     docs = ""
                     res = conn.getresponse()
